@@ -26,7 +26,7 @@ After you install the plugin, you can edit the NPSPyCaffe\detector.properties fi
 
 In the release\NPSPyCaffe directory resides the configuration file for the detector properties (detector.properties). Once you install the plugin, this file gets installed to the <Users directory>/AppData/Roaming/autopsy/NPSPyCaffe directory. In this file, you define some main properties that applies to all the detectors and then specific information about each detector.  The default installation provides a single detector.  We will show the default configuration file and describe the each entry.
 
-Default detector.properties:
+Default detector.properties file:
 
     # This file contains the NPSPyCaffe configuration file.  This allows users
     # to configure the detectors that the plugin will use.
@@ -67,6 +67,8 @@ Default detector.properties:
     demoDetect.config = demo/faster_rcnn_alt_opt.yml
     # The confidence threshold before reporting
     demoDetect.confidence = 0.8
+
+Description of the detector.properties file:
 
     main.python = c:/Miniconda2/python.exe
 This is where you need to specify where python is installed    
