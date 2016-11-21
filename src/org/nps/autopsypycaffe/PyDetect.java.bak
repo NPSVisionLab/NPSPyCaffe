@@ -1,0 +1,367 @@
+/******************************************************************************
+ * $Id$
+ *
+ * Name:     PyDetect.java
+ * Author:   Thomas Batcha
+ * 
+ *
+ * $Log$
+ * Revision 1.1  2006/02/08 19:39:03  collinsb
+ * Initial version
+ *
+ *
+ */
+
+package org.nps.autopsypycaffe;
+
+import java.awt.geom.Point2D;
+import java.io.File;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.file.Path;
+import java.nio.file.Files;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.StringTokenizer;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.lang.IllegalArgumentException;
+import java.lang.RuntimeException;
+import java.lang.Process;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.exec.LogOutputStream;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.exec.ExecuteException;
+import org.apache.commons.exec.environment.EnvironmentUtils;
+
+//import org.apache.commons.lang3.CharEncoding;
+
+import java.awt.geom.*;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.nio.file.Paths;
+import java.util.logging.Level;
+import org.apache.commons.exec.DefaultExecuteResultHandler;
+import org.sleuthkit.autopsy.coreutils.Logger;
+import org.sleuthkit.autopsy.ingest.IngestMessage;
+
+
+public class PyDetect
+{
+    private static final Logger logger = Logger.getLogger(NPSPyCaffeFileIngestModule.class.getName() + ".PyDetect");
+    final private Properties _lastProps;
+    private PipedInputStream inPipe;
+    private PipedOutputStream outPipe;
+    private CollectOutputStream stdOutData;
+    private CollectOutputStream stdErrData; 
+    private DefaultExecutor exec;
+    private DefaultExecuteResultHandler resH;
+    private AutoFlushingPumpStreamHandler pump;
+    
+
+    public PyDetect(Properties props, boolean debugMode) {
+        _lastProps = props;
+        if (debugMode){
+        //turn on all logging
+            logger.setLevel(Level.FINE);
+        }
+  
+    }
+
+    public static class DetectionResult {
+        public String objName;
+        public java.awt.geom.Point2D pix;
+        public Double width;
+        public Double height;
+        public Double score;
+        
+    }
+
+    public class CollectOutputStream extends LogOutputStream {
+        private List<String> lines = new LinkedList<String>();
+        
+        @Override
+        protected void processLine(String line, int level){
+            lines.add(line);
+        }
+        public List<String> getLines() {
+            List<String> lastLines = lines;
+            lines = new LinkedList<String>();
+            return lastLines;
+        }
+    }
+    
+
+    public class ProcessExecutor extends DefaultExecutor {
+
+        private BufferedWriter processStdinput;
+
+        @Override
+        protected Process launch(CommandLine command, Map env, File dir) throws IOException {
+            Process process = super.launch(command, env, dir);
+            //processStdinput = new BufferedWriter(new OutputStreamWriter(process.getOutputStream(), CharEncoding.UTF_8));
+            processStdinput = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+            return process;
+        }
+
+        /**
+         * Write a line in the stdin of the process.
+         * 
+         * @param line
+         *            does not need to contain the carriage return character.
+         * @throws IOException
+         *             in case of error when writing.
+         * @throws IllegalStateException
+         *             if the process was not launched.
+         */
+        public void writeLine(String line) throws IOException {
+            if (processStdinput != null) {
+                processStdinput.write(line);
+                processStdinput.newLine();
+                processStdinput.flush();
+            } else {
+                throw new IllegalStateException();
+            }
+        }
+
+    }
+
+
+    public Properties getLastProps() {
+        return _lastProps;
+    }
+
+ 
+    /*
+     * Call this for the GPU since its synced.
+    */
+    synchronized public void callSyncDetect(CommandLine args,  Map<String, String> env,
+                                           CollectOutputStream stdOutData,
+                                           CollectOutputStream stdErrData,
+                                           PipedInputStream inData,
+                                           DefaultExecutor executor,
+                                           DefaultExecuteResultHandler resH){
+        AutoFlushingPumpStreamHandler pump = new AutoFlushingPumpStreamHandler(stdOutData, stdErrData, inData);
+        //PumpStreamHandler pump = new PumpStreamHandler(stdOutData, stdErrData, inData);
+        //DefaultExecutor executor = new DefaultExecutor();
+        executor.setStreamHandler(pump);
+        
+        try {
+            executor.execute(args, env, resH);
+            logger.log(Level.INFO, "doDetect Complete");
+        }catch (ExecuteException e) {
+            logger.log(Level.SEVERE, "Execute Exception " + e.getMessage());
+            
+        }catch (IOException e) {
+            logger.log(Level.SEVERE, "IO Exception " + e.getMessage());
+            
+        }
+        
+        
+    }
+    
+    synchronized public void callNoSyncDetect(CommandLine args,  Map<String, String> env,
+                                           CollectOutputStream stdOutData,
+                                           CollectOutputStream stdErrData,
+                                           PipedInputStream inData,
+                                           DefaultExecutor executor,
+                                           DefaultExecuteResultHandler resH){
+        //PumpStreamHandler pump = new PumpStreamHandler(stdOutData, stdErrData, inData);
+        //DefaultExecutor executor = new DefaultExecutor();
+        AutoFlushingPumpStreamHandler pump = new AutoFlushingPumpStreamHandler(stdOutData, stdErrData, inData);
+        executor.setStreamHandler(pump);
+        try {
+            executor.execute(args, env, resH);
+            logger.log(Level.INFO, "doDetect Complete");
+        }catch (ExecuteException e) {
+            logger.log(Level.SEVERE, "Execute Exception " + e.getMessage());
+
+        }catch (IOException e) {
+            logger.log(Level.SEVERE, "IO Exception " + e.getMessage());
+
+        }
+  
+        
+    }
+    
+    public ArrayList<DetectionResult> getDetections(
+                                      String detectorScript,
+                                      String modelfile,
+                                      String prototxt,
+                                      String cfg,
+                                      String classes,
+                                      String confidence,
+                                      String imageFileName) throws
+                                      InterruptedException, IOException{
+        
+   
+        ArrayList<DetectionResult> res = new ArrayList<DetectionResult>();
+        
+        if (exec == null){
+            // First time executing so spin up the detector process
+            if (new File(detectorScript).exists() == false){
+                logger.log(Level.SEVERE, "Detector script " + detectorScript + " does not exist!!!");
+                return res;
+            }
+            String pythonExe = _lastProps.getProperty("main.python");
+            if (new File(pythonExe).exists() == false){
+                logger.log(Level.SEVERE, "Not a valid python executeable in properties: " + pythonExe + " does not exist!!!");
+                return res;
+            }
+
+
+            CommandLine args = CommandLine.parse(pythonExe);
+            args.addArgument(detectorScript);
+            //args.addArgument("--split");
+            //args.addArgument("600");
+            //args.addArgument("--cpu");
+            args.addArgument("--model");
+            args.addArgument(modelfile);
+            args.addArgument("--proto");
+            args.addArgument(prototxt);
+            args.addArgument("--cfg");
+            args.addArgument(cfg);
+            if (confidence != null){
+                args.addArgument("--confidence");
+                args.addArgument(confidence);
+            }
+            if (classes != null){
+                args.addArgument("--classes");
+                args.addArgument(classes);
+            }
+            //args.addArgument("--tiles");
+            //args.addArgument(imageLayerPath.getAbsolutePath());
+            args.addArgument(imageFileName);
+            String baseDir = NPSPyCaffeFactory.getBasePath();
+
+            Map<String, String> env = EnvironmentUtils.getProcEnvironment();
+
+            if (NPSPyCaffeFactory.hasGPU()){
+                String cudaPath = NPSPyCaffeFactory.getCudaPath();
+                env.put("PATH","%PATH%;" + cudaPath + "/bin;" +
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release;" +
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe/caffe"
+                );
+                env.put("PYTHONPATH", baseDir + "py-faster-rcnn/lib;" +
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/python;" +
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe");
+            }else {
+                // use _caffe.pyd compiled without cuda
+                env.put("PATH","%PATH%;" + 
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe_nocuda/caffe;" +    
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release" 
+                );
+                env.put("PYTHONPATH", baseDir + "py-faster-rcnn/lib;" +
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe_nocuda;" +    
+                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/python;" 
+                );
+                env.put("OPENBLAS_NUM_THREADS","8");
+                args.addArgument("--cpu");
+            }
+
+            logger.log(Level.INFO, "PYTHONPATH= " + env.get("PYTHONPATH"));
+            logger.log(Level.INFO, "Calling detection script " + detectorScript);
+
+            stdOutData = new CollectOutputStream();
+            stdErrData = new CollectOutputStream();
+            outPipe = new PipedOutputStream();
+            inPipe = new PipedInputStream(outPipe);
+            
+            resH = new DefaultExecuteResultHandler();
+            exec = new DefaultExecutor();
+            pump = new AutoFlushingPumpStreamHandler(stdOutData, stdErrData, inPipe);
+            exec.setStreamHandler(pump);
+        
+            try {
+                exec.execute(args, env, resH);
+            }catch (ExecuteException e) {
+                logger.log(Level.SEVERE, "Execute Exception " + e.getMessage());
+            
+            }catch (IOException e) {
+                logger.log(Level.SEVERE, "IO Exception " + e.getMessage());
+            }
+        }else {
+            //processStdinput = new BufferedWriter(new OutputStreamWriter(process.getOutputStream()));
+            outPipe.write(imageFileName.getBytes());
+            outPipe.write("\n".getBytes());
+            outPipe.flush();
+        }
+         
+        List<String> lines;
+        
+        /*
+        if (errCode != 0) {
+            logger.log(Level.SEVERE, "Could not execute detection script!!");
+            logger.log(Level.SEVERE, "Error code: " + String.valueOf(errCode));
+        }
+        */
+        // We output this if the debug property is true.
+        lines = stdErrData.getLines();
+        for (String line : lines) {
+            logger.log(Level.FINE, "script: " +line);
+        }
+       
+       
+        try {
+            logger.log(Level.INFO, "Reading input stream");
+            // Input steam should be objname  x y w h
+            // The x,y,w,h are in image pixel coordinates we
+            // need to convert to lat lon
+            lines = stdOutData.getLines();
+            for (String line : lines) {
+                logger.log(Level.FINE, line);
+                StringTokenizer tok = new StringTokenizer(line);
+                DetectionResult dres = new DetectionResult();
+                dres.objName = (String)tok.nextElement();
+                dres.score = Double.valueOf((String)tok.nextElement());
+                dres.pix = new Point2D.Double(
+                                  Double.valueOf((String)tok.nextElement()),
+                                  Double.valueOf((String)tok.nextElement()));
+                dres.width = Double.valueOf((String)tok.nextElement());
+                dres.height = Double.valueOf((String)tok.nextElement());
+                res.add(dres);
+            }
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Parsing detection return exception caught.");
+            logger.log(Level.SEVERE, e.getMessage());
+
+        } 
+        
+        return res;
+    }
+    
+    public void close() {
+     
+        try {
+            inPipe.close();
+        }catch(IOException ex){
+            logger.log(Level.SEVERE, "Exception closing input pipe.");
+            logger.log(Level.SEVERE, ex.getMessage());
+        }
+        List<String> lines = stdErrData.getLines();
+        for (String line : lines) {
+            logger.log(Level.FINE, "script: " +line);
+        }
+        lines = stdOutData.getLines();
+        for (String line : lines) {
+            logger.log(Level.FINE, "output: " +line);
+        }
+    }
+    
+
+
+}
+
