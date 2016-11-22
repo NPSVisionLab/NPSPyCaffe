@@ -44,6 +44,8 @@ import org.sleuthkit.autopsy.ingest.IngestMonitor;
 import org.sleuthkit.autopsy.ingest.IngestServices;
 import org.sleuthkit.autopsy.ingest.ModuleContentEvent;
 import org.sleuthkit.autopsy.ingest.ModuleDataEvent;
+import org.sleuthkit.autopsy.keywordsearch.KeywordSearch;
+import org.sleuthkit.autopsy.keywordsearch.Server;
 import org.sleuthkit.datamodel.AbstractFile;
 import org.sleuthkit.datamodel.BlackboardArtifact;
 import org.sleuthkit.datamodel.BlackboardAttribute;
@@ -52,6 +54,7 @@ import org.sleuthkit.datamodel.DerivedFile;
 import org.sleuthkit.datamodel.TskCoreException;
 import org.sleuthkit.datamodel.TskData;
 import org.sleuthkit.datamodel.TskException;
+import org.sleuthkit.autopsy.keywordsearch.SolrSearchService;
 
 /**
  * File-level ingest module that runs a py-faster-rcnn image detection
@@ -77,7 +80,6 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
     NPSPyCaffeFileIngestModule(IngestModuleIngestJobSettings settings, Properties props) {
         localSettings = (NPSPyCaffeIngestJobSettings)settings;
         this.props = props;
-        
     }
 
     @Override
@@ -311,6 +313,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
                             blackboard.indexArtifact(art);
                         }
                         blackboard.indexArtifact(art2);
+                        
                     } catch (Blackboard.BlackboardException ex) {
                         MessageNotifyUtil.Notify.error("Failed to index artiface", 
                                 art.getDisplayName());

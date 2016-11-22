@@ -47,6 +47,15 @@
                         <specification-version>10.5.16</specification-version>
                     </run-dependency>
                 </dependency>
+                <dependency>
+                    <code-name-base>org.sleuthkit.autopsy.keywordsearch</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency>
+                        <release-version>6</release-version>
+                        <specification-version>6.3.16</specification-version>
+                    </run-dependency>
+                </dependency>
             </module-dependencies>
             <public-packages/>
             <class-path-extension>

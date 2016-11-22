@@ -7,6 +7,7 @@ package org.nps.autopsypycaffe;
 
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ItemListener;
 import org.sleuthkit.autopsy.ingest.IngestModuleIngestJobSettings;
 import org.sleuthkit.autopsy.ingest.IngestModuleIngestJobSettingsPanel;
 
@@ -27,7 +28,7 @@ import javax.swing.border.Border;
  *
  * @author tomb
  */
-public class NPSPyCaffeJobSettingsPanel extends IngestModuleIngestJobSettingsPanel {
+public class NPSPyCaffeJobSettingsPanel extends IngestModuleIngestJobSettingsPanel{
     
     private Properties props;
     private ArrayList<String> detectorsAvail = new ArrayList<String>();
