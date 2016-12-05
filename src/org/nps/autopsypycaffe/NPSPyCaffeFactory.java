@@ -73,7 +73,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
         }catch (IOException ex){
             logger.log(Level.SEVERE, ex.getMessage());
         }
-        progressBar = ProgressHandleFactory.createHandle("NPSPyCaffe");
+       
     }
     
     
@@ -110,11 +110,14 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
     static synchronized void setProgress(){
         currentCnt++;
         int percent;
-        if (progressCnt > 0)
-            percent = (100 * currentCnt) / progressCnt;
-        else
-            percent = 0;
-        progressBar.progress(percent);
+        if (progressStarted){
+            if (progressCnt > 0)
+                percent = (100 * currentCnt) / progressCnt;
+            else
+                percent = 0;
+
+            progressBar.progress(percent);
+        }
     }
     
     static synchronized void finishProgress() {
@@ -125,6 +128,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
                 progressCnt = 0;
                 detectCnt = 0;
                 progressBar.finish();
+                firstDetector = null;
             }
         }
     }
@@ -232,6 +236,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
         }
         PyDetect detect;
         if (firstDetector == null){
+            progressBar = ProgressHandleFactory.createHandle("NPSPyCaffe");
             startProgress();
             detect = new PyDetect(props, debug);
             firstDetector = detect;
