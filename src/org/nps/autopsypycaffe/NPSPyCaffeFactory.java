@@ -32,7 +32,8 @@ import org.sleuthkit.autopsy.ingest.IngestModuleFactoryAdapter;
 import org.sleuthkit.autopsy.ingest.IngestModuleIngestJobSettings;
 import org.sleuthkit.autopsy.ingest.IngestModuleIngestJobSettingsPanel;
 import org.sleuthkit.datamodel.AbstractFile;
-
+import org.netbeans.api.progress.ProgressHandle;
+import org.netbeans.api.progress.ProgressHandleFactory;
 /**
  * A factory for creating email parser file ingest module instances.
  */
@@ -45,7 +46,11 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
     private static boolean hasGPU = false;
     private static String cudaPath;
     private static PyDetect firstDetector = null;
-    
+    private static ProgressHandle progressBar;
+    private static boolean progressStarted = false;
+    private static int progressCnt = 0;
+    private static int currentCnt = 0;
+    private static int detectCnt = 0;
     
     public NPSPyCaffeFactory() {
         
@@ -68,7 +73,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
         }catch (IOException ex){
             logger.log(Level.SEVERE, ex.getMessage());
         }
-        
+        progressBar = ProgressHandleFactory.createHandle("NPSPyCaffe");
     }
     
     
@@ -91,6 +96,40 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
     static String getCudaPath() {
         return cudaPath;
     }
+    
+    static synchronized void incProgressCnt() {
+        progressCnt++;
+    }
+    static synchronized void startProgress() {
+        if (progressStarted == false){
+            progressStarted = true;
+            currentCnt = 0;
+            progressBar.start(100);
+        }
+    }
+    static synchronized void setProgress(){
+        currentCnt++;
+        int percent;
+        if (progressCnt > 0)
+            percent = (100 * currentCnt) / progressCnt;
+        else
+            percent = 0;
+        progressBar.progress(percent);
+    }
+    
+    static synchronized void finishProgress() {
+        if (progressStarted){
+            detectCnt--;
+            if (detectCnt <= 0){
+                progressStarted = false;
+                progressCnt = 0;
+                detectCnt = 0;
+                progressBar.finish();
+            }
+        }
+    }
+    
+    
     
     /*
      * Try and set cudaPath and return if cuda has been installed
@@ -193,6 +232,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
         }
         PyDetect detect;
         if (firstDetector == null){
+            startProgress();
             detect = new PyDetect(props, debug);
             firstDetector = detect;
         }else {
@@ -204,6 +244,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
             }
         }
         module.setDetector(detect);
+        detectCnt++;
       
         return module;
         

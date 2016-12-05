@@ -34,8 +34,10 @@ import org.sleuthkit.autopsy.casemodule.services.FileManager;
 import org.sleuthkit.autopsy.coreutils.Logger;
 import org.sleuthkit.autopsy.coreutils.MessageNotifyUtil;
 import org.sleuthkit.autopsy.datamodel.ContentUtils;
+import org.sleuthkit.autopsy.ingest.DataSourceIngestModuleProgress;
 import org.sleuthkit.autopsy.ingest.FileIngestModule;
 import org.sleuthkit.autopsy.ingest.IngestJobContext;
+import org.sleuthkit.autopsy.ingest.IngestManager;
 import org.sleuthkit.autopsy.ingest.IngestMessage;
 import org.sleuthkit.autopsy.ingest.IngestModule.ProcessResult;
 import org.sleuthkit.autopsy.ingest.IngestModuleIngestJobSettings;
@@ -56,6 +58,7 @@ import org.sleuthkit.datamodel.TskData;
 import org.sleuthkit.datamodel.TskException;
 import org.sleuthkit.autopsy.keywordsearch.SolrSearchService;
 
+
 /**
  * File-level ingest module that runs a py-faster-rcnn image detection
  * on the file input.
@@ -72,6 +75,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
     private static final HashMap<Long, Long> artifactCountsForIngestJobs = new HashMap<>();
     private static final IngestModuleReferenceCounter refCounter = new IngestModuleReferenceCounter();
     private PyDetect detector;
+    
     
     
 
@@ -223,6 +227,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
         ArrayList<PyDetect.DetectionResult> detRes;
         PyDetect detect = detector;
         detector.putAbsMapAFile(imageFileName, abstractFile);
+        NPSPyCaffeFactory.incProgressCnt();
         try {
             if (NPSPyCaffeFactory.hasGPU()){
                 // We only going to have one detect object in GPU mode
@@ -264,6 +269,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
                     logger.log(Level.SEVERE, "Could not find Abstract file from " + det.fileName);
                     continue;
                 }
+                NPSPyCaffeFactory.setProgress();
                 ArrayList<BlackboardArtifact> artifacts = abstractFile.getArtifacts(BlackboardArtifact.ARTIFACT_TYPE.TSK_INTERESTING_FILE_HIT);
                 // See if this file has already added this obj detection to the Blackboard
                 BlackboardArtifact prevInteresting = null;
@@ -347,6 +353,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
     @Override
     public void shutDown() {
         logger.log(Level.INFO, "Shutdown called");
+        NPSPyCaffeFactory.startProgress();
         ArrayList<PyDetect.DetectionResult> res;
         if (NPSPyCaffeFactory.hasGPU()){
             synchronized(detector){
@@ -363,6 +370,8 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
         // This method is thread-safe with per ingest job reference counted
         // management of shared data.
         reportBlackboardPostCount(context.getJobId());
+        NPSPyCaffeFactory.finishProgress();
+        
     }
  
     synchronized static void addToBlackboardPostCount(long ingestJobId, long countToAdd) {
