@@ -17,6 +17,10 @@ If you have a GPU you can install CUDA and cuDNN
 Download CUDA toolkit 7.5 from nVidia website.
 Download cuDNN v3 or cuDNN v4 from the nVidia website.  Unpack and upzip to %CUDA_PATH%.
 
+You can download a netbeans module that contains the plugin from:
+
+    ftp://vision.nps.edu/org-nps-autopsypycaffe.nbm (600k)
+
 Install the org-nps-autopsypycaffe.nbm plugin from the Autopsy Plugin screen.
 
 After you install the plugin, you can edit the NPSPyCaffe\detector.properties file in the plugin install directory (usually <user name>\AppData\Roaming\autopsy\NPSPyCaffe). Change the main.python property to reflect where you installed python. To get more debug information from the program set to true the main.debug property.
