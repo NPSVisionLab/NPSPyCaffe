@@ -136,31 +136,35 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             return ProcessResult.OK;
         }
        
-        String detectorScript = props.getProperty("main.pyscript");
-        if (detectorScript == null){
-            logger.log(Level.SEVERE, "Could not find property 'main.pyscript'");
-            displayErrorMessage("Property Error", "Could not find property 'main.pyscript'", "");
-            return ProcessResult.ERROR;
-        }
-        detectorScript = NPSPyCaffeFactory.getBasePath() + detectorScript;
-        if (new File(detectorScript).exists() == false){
-            logger.log(Level.SEVERE, "Detector script " + detectorScript + " does not exist!!!");
-            displayErrorMessage("Property Error", "Detector script does not exist", detectorScript);
-            return ProcessResult.ERROR;
-        }
-        String pythonExe = props.getProperty("main.python");
-        if (pythonExe == null || new File(pythonExe).exists() == false){
-            logger.log(Level.SEVERE, "Not a valid python executeable in properties: " + pythonExe + " does not exist!!!");
-            displayErrorMessage("Property Error", "Could not find python executable!", 
-                                pythonExe);
-            return ProcessResult.ERROR;
-        }
-        
         String detectorName = localSettings.getDetector();
         if (detectorName == null || detectorName.equals("")){
             logger.log(Level.SEVERE, "No detector was selected!");
             displayErrorMessage("Detector error", "No Detector was selected", "");
             return ProcessResult.ERROR;
+        }
+        
+        String detectorScript = props.getProperty(detectorName + ".pyscript");
+        if (detectorScript == null){
+            logger.log(Level.SEVERE, "Could not find property " + detectorName + ".pyscript");
+            displayErrorMessage("Property Error", "Could not find property " + detectorName + ".pyscript'", "");
+            return ProcessResult.ERROR;
+        }
+        detectorScript = NPSPyCaffeFactory.getBasePath() + detectorName + "/" + detectorScript;
+        if (new File(detectorScript).exists() == false){
+            logger.log(Level.SEVERE, "Detector script " + detectorScript + " does not exist!!!");
+            displayErrorMessage("Property Error", "Detector script does not exist", detectorScript);
+            return ProcessResult.ERROR;
+        }
+        String pythonExe = props.getProperty(detectorName + ".python");
+        if (pythonExe == null || new File(pythonExe).exists() == false){
+            // No special python defined for detector so see if we found one at startup
+            pythonExe = NPSPyCaffeFactory.getPythonPath();
+            if (pythonExe == null || new File(pythonExe).exists() == false){
+                logger.log(Level.SEVERE, "Not a valid python executeable in properties or in path!");
+                displayErrorMessage("Property Error", "Could not find python executable in properties or path!", 
+                                    pythonExe);
+                return ProcessResult.ERROR;
+            }
         }
         String modelfile = props.getProperty(detectorName + ".model");
         if (modelfile == null){
@@ -168,7 +172,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             displayErrorMessage("Property error", "Could not find property", detectorName + ".model");
             return ProcessResult.ERROR;
         }
-        modelfile = NPSPyCaffeFactory.getBasePath() + modelfile;
+        modelfile = NPSPyCaffeFactory.getBasePath() + detectorName + "/"+ modelfile;
         if (new File(modelfile).exists() == false){
             logger.log(Level.SEVERE, "model file " + modelfile + " does not exist!!!");
             displayErrorMessage("Property error", "Model file does not exist", modelfile);
@@ -180,7 +184,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             displayErrorMessage("Property error", "Could not find property", detectorName + ".prototxt");
             return ProcessResult.ERROR;
         }
-        prototxt = NPSPyCaffeFactory.getBasePath() + prototxt;
+        prototxt = NPSPyCaffeFactory.getBasePath() + detectorName +"/" + prototxt;
         if (new File(prototxt).exists() == false){
             logger.log(Level.SEVERE, "prototxt file " + prototxt + " does not exist!!!");
             displayErrorMessage("Property error", "Prototxt file does not exist", prototxt);
@@ -191,7 +195,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             logger.log(Level.SEVERE, "Could not find property " + detectorName + ".config");
             return ProcessResult.ERROR;
         }
-        cfg = NPSPyCaffeFactory.getBasePath() + cfg;
+        cfg = NPSPyCaffeFactory.getBasePath() + detectorName + "/" + cfg;
         if (new File(cfg).exists() == false){
             logger.log(Level.SEVERE, "config file " + cfg + " does not exist!!!");
             displayErrorMessage("Property error", "Config file does not exist", cfg);
@@ -229,7 +233,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
         detector.putAbsMapAFile(imageFileName, abstractFile);
         NPSPyCaffeFactory.incProgressCnt();
         try {
-            if (NPSPyCaffeFactory.hasGPU()){
+            if (NPSPyCaffeFactory.hasGPU(detectorName)){
                 // We only going to have one detect object in GPU mode
                 // so lets not step on each other processing detects!
                 synchronized(detect){
@@ -355,7 +359,8 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
         logger.log(Level.INFO, "Shutdown called");
         NPSPyCaffeFactory.startProgress();
         ArrayList<PyDetect.DetectionResult> res;
-        if (NPSPyCaffeFactory.hasGPU()){
+        String detectorName = localSettings.getDetector();
+        if (NPSPyCaffeFactory.hasGPU(detectorName)){
             synchronized(detector){
                 res = detector.close();
                 blackboardDetection(context, res);

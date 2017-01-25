@@ -12,7 +12,7 @@ Demo script showing detections in sample images.
 
 See README.md for installation instructions before running.
 """
-
+import caffe
 #import _init_paths
 from fast_rcnn.config import cfg, cfg_from_file
 from fast_rcnn.test import im_detect

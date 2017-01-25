@@ -29,22 +29,11 @@ import javax.swing.border.Border;
  * @author tomb
  */
 public class NPSPyCaffeJobSettingsPanel extends IngestModuleIngestJobSettingsPanel{
-    
-    private Properties props;
-    private ArrayList<String> detectorsAvail = new ArrayList<String>();
-    
+   
     /**
      * Creates new form SampleIngestModuleIngestJobSettings
      */
-    public NPSPyCaffeJobSettingsPanel(IngestModuleIngestJobSettings settings, Properties props) {
-        this.props = props;
-        if (props.containsKey("main.detectors")){
-            String[] detectors = props.getProperty("main.detectors").split(",");
-            // Strip spaces
-           for (String next : detectors){
-               detectorsAvail.add(next.trim());
-           }
-        }
+    public NPSPyCaffeJobSettingsPanel(IngestModuleIngestJobSettings settings) {
         initComponents();
         customizeComponents((NPSPyCaffeIngestJobSettings)settings);
     }
@@ -89,8 +78,8 @@ public class NPSPyCaffeJobSettingsPanel extends IngestModuleIngestJobSettingsPan
         BoxLayout layout = new BoxLayout(this, javax.swing.BoxLayout.Y_AXIS);
         this.setLayout(layout);
         ButtonGroup group = new ButtonGroup();
-         
-        for (String next : detectorsAvail){
+        boolean defaultSet = false;
+        for (String next : NPSPyCaffeFactory.getAvailableDetectors()){
             JPanel panelH = new JPanel();
             Border border = BorderFactory.createEtchedBorder();
             BoxLayout layoutH = new BoxLayout(panelH, BoxLayout.X_AXIS);
@@ -103,6 +92,10 @@ public class NPSPyCaffeJobSettingsPanel extends IngestModuleIngestJobSettingsPan
             button.setVerticalAlignment(SwingConstants.CENTER);
             button.setActionCommand(next);
             group.add(button);
+            if (defaultSet == false){
+                button.setSelected(true);
+                defaultSet = true;
+            }
             panelRadio.setAlignmentY(0.5f);
             panelRadio.add(button);
             panelH.add(panelRadio);
@@ -111,6 +104,7 @@ public class NPSPyCaffeJobSettingsPanel extends IngestModuleIngestJobSettingsPan
             panelV.setLayout(layoutV);
             detectorRadioButtons.add(button);
             String key = next + ".description";
+            Properties props = NPSPyCaffeFactory.getProperties();
             if (props.containsKey(key)){
                 JLabel l1 = new JLabel("Description:");
                 l1.setHorizontalAlignment(SwingConstants.LEFT);

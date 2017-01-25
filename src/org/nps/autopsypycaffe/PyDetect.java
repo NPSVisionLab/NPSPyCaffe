@@ -61,6 +61,7 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import org.apache.commons.exec.DefaultExecuteResultHandler;
+import org.apache.commons.lang.StringUtils;
 import static org.nps.autopsypycaffe.NPSPyCaffeFileIngestModule.addToBlackboardPostCount;
 import org.sleuthkit.autopsy.casemodule.Case;
 import org.sleuthkit.autopsy.casemodule.services.Blackboard;
@@ -91,9 +92,11 @@ public class PyDetect
     private boolean detectorRunning = false;
     private IngestServices services = IngestServices.getInstance();
     private boolean debugMode = false;
+    private String detectName;
     
   
-    public PyDetect(Properties props, boolean dMode) {
+    public PyDetect(String name, Properties props, boolean dMode) {
+        detectName = name;
         absMap = new HashMap<String, AbstractFile>();
         _lastProps = props;
         if (dMode){
@@ -269,12 +272,14 @@ public class PyDetect
                 logger.log(Level.SEVERE, "Detector script " + detectorScript + " does not exist!!!");
                 return res;
             }
-            String pythonExe = _lastProps.getProperty("main.python");
-            if (new File(pythonExe).exists() == false){
-                logger.log(Level.SEVERE, "Not a valid python executeable in properties: " + pythonExe + " does not exist!!!");
-                return res;
+            String pythonExe = _lastProps.getProperty(detectName + ".python");
+            if (pythonExe == null || new File(pythonExe).exists() == false){
+                pythonExe = NPSPyCaffeFactory.getPythonPath();
+                if (pythonExe == null || new File(pythonExe).exists() == false){
+                    logger.log(Level.SEVERE, "Not a valid python executeable in properties or path!!!");
+                    return res;
+                }
             }
-
 
             CommandLine args = CommandLine.parse(pythonExe);
             this.detectorScript = detectorScript;
@@ -300,34 +305,58 @@ public class PyDetect
             //args.addArgument(imageLayerPath.getAbsolutePath());
             args.addArgument(imageFileName);
             String baseDir = NPSPyCaffeFactory.getBasePath();
-
+            // get any PYTHONPATH add
             Map<String, String> env = EnvironmentUtils.getProcEnvironment();
 
-            if (NPSPyCaffeFactory.hasGPU()){
+            if (NPSPyCaffeFactory.hasGPU(detectName)){
                 logger.log(Level.INFO, "Using GPU");
                 String cudaPath = NPSPyCaffeFactory.getCudaPath();
-                env.put("PATH","%PATH%;" + cudaPath + "/bin;" +
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release;" +
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe/caffe"
-                );
-                env.put("PYTHONPATH", baseDir + "py-faster-rcnn/lib;" +
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/python;" +
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe");
+                String pythonpath = _lastProps.getProperty(detectName + ".pythonPath");
+                String[] pylines = null;
+                if (pythonpath != null)
+                    pylines = StringUtils.split(pythonpath, ";");
+                String mypath = _lastProps.getProperty(detectName + ".path");
+                String[] pathlines = null;
+                if (mypath != null)
+                    pathlines = StringUtils.split(mypath, ";");
+                String envString = "%PATH%;" + cudaPath + "/bin";
+                for (String next : pathlines){
+                    envString = envString + ";" + baseDir + detectName + "/" + next;   
+                }
+                envString = envString + ";" + "../3rdparty";
+                env.put("PATH", envString);
+                envString = "";
+                for (String next : pylines){
+                   envString = envString + ";" + baseDir +  detectName + "/" + next;
+                }   
+                env.put("PYTHONPATH", envString);
+               
             }else {
-                // use _caffe.pyd compiled without cuda
-                env.put("PATH","%PATH%;" + 
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe_nocuda/caffe;" +    
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release" 
-                );
-                env.put("PYTHONPATH", baseDir + "py-faster-rcnn/lib;" +
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/build/x64/Release/pycaffe_nocuda;" +    
-                    baseDir + "py-faster-rcnn/caffe-fast-rcnn/python;" 
-                );
+                String pythonpath = _lastProps.getProperty(detectName + ".pythonPathNoCuda");
+                String[] pylines = null;
+                if (pythonpath != null)
+                    pylines = StringUtils.split(pythonpath, ";");
+                String mypath = _lastProps.getProperty(detectName + ".pathNoCuda");
+                String[] pathlines = null;
+                if (mypath != null)
+                    pathlines = StringUtils.split(mypath, ";");
+                String envString = "%PATH%";
+                for (String next : pathlines){
+                    envString = envString + ";" + baseDir + detectName + "/" + next;
+                }
+                envString = envString + ";" + "../3rdparty";
+                env.put("PATH", envString);
+                envString = "";
+                for (String next : pylines){
+                   envString = envString + ";" + baseDir + detectName + "/" + next;
+                }   
+                env.put("PYTHONPATH", envString);
                 env.put("OPENBLAS_NUM_THREADS","8");
                 args.addArgument("--cpu");
             }
 
             logger.log(Level.INFO, "PYTHONPATH= " + env.get("PYTHONPATH"));
+            logger.log(Level.INFO, "PATH=" + env.get("PATH"));
             logger.log(Level.INFO, "Calling detection script " + detectorScript);
             logger.log(Level.INFO, "Detecting file " + imageFileName);
             stdOutData = new CollectOutputStream(true);
