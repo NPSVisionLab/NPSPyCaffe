@@ -140,7 +140,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
     }
 
     static String getModuleVersion() {
-        return "1.0";
+        return "1.1";
     }
 
     static boolean hasGPU(String dname){
