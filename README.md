@@ -51,8 +51,10 @@ xxxx is the name of the detector.  The properties in that file are  named:
 
 The python to run if different from the default
     py-faster-rcnn.python = c:/Miniconda2/python.exe
+
 The python script to execute a detection
     py-faster-rcnn.pyscript =  doPyFasterRCNN.py
+
 output debug log info (true or false)
     py-faster-rcnn.debug = false
 
