@@ -39,28 +39,28 @@ Once you install the plugin, the detector.properties file gets installed to the 
 
 Default detector.properties file:
 
-# This file contains the NPSPyCaffe configuration file for a detector type.
-# A detector is based on a detector type which has the name of the directory
-# where it is located and a detector name which ties a detector type to a
-# configuration (model, classes, config, etc).  Each detector type directory
-# contains at least 2 or more property files. This file is named
-# detector.properties and contains information that applies to the detector
-# type.  There can be one or more of files named xxxx.properties where
-# xxxx is the name of the detector.  The properties in that file are  named:
-# <detector type>.<detector name>.<property>
+This file contains the NPSPyCaffe configuration file for a detector type.
+A detector is based on a detector type which has the name of the directory
+where it is located and a detector name which ties a detector type to a
+configuration (model, classes, config, etc).  Each detector type directory
+contains at least 2 or more property files. This file is named
+detector.properties and contains information that applies to the detector
+type.  There can be one or more of files named xxxx.properties where
+xxxx is the name of the detector.  The properties in that file are  named:
+<detector type>.<detector name>.<property>
 
-# The python to run if different from the default
-#py-faster-rcnn.python = c:/Miniconda2/python.exe
-# The python script to execute a detection
-py-faster-rcnn.pyscript =  doPyFasterRCNN.py
-# output debug log info (true or false)
-py-faster-rcnn.debug = false
+The python to run if different from the default
+    py-faster-rcnn.python = c:/Miniconda2/python.exe
+The python script to execute a detection
+    py-faster-rcnn.pyscript =  doPyFasterRCNN.py
+output debug log info (true or false)
+    py-faster-rcnn.debug = false
 
-py-faster-rcnn.gpu = true
-py-faster-rcnn.pythonPath = caffe-fast-rcnn/build/x64/Release/pycaffe;lib;caffe-fast-rcnn/python
-py-faster-rcnn.path = caffe-fast-rcnn/build/x64/Release;caffe-fast-rcnn/build/x64/Release/pycaffe/caffe
-py-faster-rcnn.pythonPathNoCuda = caffe-fast-rcnn/build/x64/Release/pycaffe_nocuda;lib;caffe-fast-rcnn/python
-py-faster-rcnn.pathNoCuda = caffe-fast-rcnn/build/x64/Release/pycaffe_nopcuda/caffe;caffe-fast-rcnn/build/x64/Release
+    py-faster-rcnn.gpu = true
+    py-faster-rcnn.pythonPath = caffe-fast-rcnn/build/x64/Release/pycaffe;lib;caffe-fast-rcnn/python
+    py-faster-rcnn.path = caffe-fast-rcnn/build/x64/Release;caffe-fast-rcnn/build/x64/Release/pycaffe/caffe
+    py-faster-rcnn.pythonPathNoCuda = caffe-fast-rcnn/build/x64/Release/pycaffe_nocuda;lib;caffe-fast-rcnn/python
+    py-faster-rcnn.pathNoCuda = caffe-fast-rcnn/build/x64/Release/pycaffe_nopcuda/caffe;caffe-fast-rcnn/build/x64/Release
 
 Description of the detector.properties file:
 
