@@ -77,6 +77,7 @@ If this is set to true more logging will be written out including all the inform
     py-faster-rcnn.gpu = true
 This indicates if you want to use any CUDA hardware accelleration if its available. This can speed up the processing of picture files by 20 times against a single CPU core.
 
+
 Description of a demo.properties file (defines the demo detector)
 
 	py-faster-rcnn.demo.classes = aeroplane, bicycle, bird, boat, bottle, bus, car,  cat, chair, cow, diningtable, dog, horse, motorbike, person, pottedplant, sheep, sofa, train, tvmonitor
