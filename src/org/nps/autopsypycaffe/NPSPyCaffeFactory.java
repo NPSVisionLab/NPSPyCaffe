@@ -61,7 +61,8 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
     private static int currentCnt = 0;
     private static int currentPercent = 0;
     private static int detectCnt = 0;
-    private static ArrayList<String> detectors = new ArrayList<String>();
+    private static ArrayList<String> detectorTypes = new ArrayList<String>();
+    private static ArrayList<String> detectorNames = new ArrayList<String>();
     private static String pythonExec;
     
     public NPSPyCaffeFactory() {
@@ -80,26 +81,46 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
         String[] dlist = new File(basePath).list();
         for (String name : dlist){
            if (new File(basePath + name).isDirectory()) {
-               detectors.add(name);
+               detectorTypes.add(name);
            }
         }
-        if (detectors.size() == 0){
+        if (detectorTypes.size() == 0){
              IngestMessage msg = IngestMessage.createErrorMessage(NPSPyCaffeFactory.getModuleName(), "Congigure Error!",
-                    "No Detectors found!");            
+                    "No Detector types found!");            
             services.postMessage(msg);
-        }else for (String det : detectors){
-            File propfile = new File(basePath + det +  "/detector.properties");
-            if (propfile.exists() == true){
-                try {
-                    FileInputStream in = new FileInputStream(propfile);
-                    props.load(in);
-                    in.close();
-                    boolean gpu = checkForGPU(det);
-                    hasGPU.put(det, gpu);
-                }catch(FileNotFoundException ex){
-                    logger.log(Level.SEVERE, "Could not Find detector.properties file");
-                }catch (IOException ex){
-                    logger.log(Level.SEVERE, ex.getMessage());
+        }else for (String det : detectorTypes){
+            String[] plist = new File(basePath + det).list();
+            for (String name : plist){
+                if (name.endsWith(".properties")){
+                    // Read anything that ends with .properties
+                    File propfile = new File(basePath + det + "/" + name);
+                    if (propfile.exists() == true){
+                        try {
+                            FileInputStream in = new FileInputStream(propfile);
+                            props.load(in);
+                            in.close();
+                            if (name.equals("detector.properties")){
+                                // main property file describing the detector type
+                                boolean gpu = checkForGPU(det);
+                                hasGPU.put(det, gpu);
+                            }else {
+                                // specific detector property file so use name of file as detector name
+                                int idx = name.indexOf(".properties");
+                                String detName = name.substring(0,idx);
+                                detectorNames.add(det + "." + detName);
+                            }
+                        }catch(FileNotFoundException ex){
+                            logger.log(Level.SEVERE, "Could not Find detector.properties file");
+                        }catch (IOException ex){
+                            logger.log(Level.SEVERE, ex.getMessage());
+                        }
+                    }
+                }
+            }
+            
+            for (String name : plist){
+                if (name.endsWith(".properties")){
+                    
                 }
             }
         }
@@ -126,7 +147,7 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
     }
     
     static ArrayList<String> getAvailableDetectors() {
-        return detectors;
+        return detectorNames;
     }
     
     static String getBasePath() {
@@ -143,10 +164,23 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
         return "1.1";
     }
 
+    static String getDetectorType(String dname){
+        String dtype = null;
+        int idx = dname.indexOf(".");
+        if (idx != -1){
+            dtype = dname.substring(0, idx);   
+        } 
+        return dtype;
+    }
+    
+   
     static boolean hasGPU(String dname){
-        if (dname != null){
-            if (hasGPU.containsKey(dname))   
-                return (boolean)hasGPU.get(dname);
+        // We take both detector names is form of type.name
+        // and just type.
+        String dtype = getDetectorType(dname);
+        if (dtype != null){
+            if (hasGPU.containsKey(dtype))   
+                return (boolean)hasGPU.get(dtype);
         }
         return false;
     }
@@ -203,9 +237,9 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
     /*
      * Try and set cudaPath and return if cuda has been installed
     */
-    public boolean checkForGPU(String dname){
+    public boolean checkForGPU(String dTypeName){
         // If the user overrides using the gpu then return false
-        String useGPU = props.getProperty(dname + ".gpu");
+        String useGPU = props.getProperty(dTypeName + ".gpu");
         if (useGPU != null && useGPU.toLowerCase().equals("false")){
             return false;
         }
@@ -296,7 +330,8 @@ public class NPSPyCaffeFactory extends IngestModuleFactoryAdapter {
         NPSPyCaffeFileIngestModule module = new NPSPyCaffeFileIngestModule(settings, props);
         NPSPyCaffeIngestJobSettings npsSettings = (NPSPyCaffeIngestJobSettings)settings;
         String dname = npsSettings.getDetector();
-        String hasDebug = props.getProperty(dname + ".debug");
+        String detectorType = getDetectorType(dname);
+        String hasDebug = props.getProperty(detectorType + ".debug");
         boolean debug = false;
         if (hasDebug != null && hasDebug.toLowerCase().equals("true")){
             debug = true;

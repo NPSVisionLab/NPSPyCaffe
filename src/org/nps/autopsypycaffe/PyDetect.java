@@ -93,6 +93,7 @@ public class PyDetect
     private IngestServices services = IngestServices.getInstance();
     private boolean debugMode = false;
     private String detectName;
+    private boolean classifyOnly = false;   // If true no detection rectangles
     
   
     public PyDetect(String name, Properties props, boolean dMode) {
@@ -238,12 +239,19 @@ public class PyDetect
                 DetectionResult dres = new DetectionResult();
                 dres.fileName = lastFile;
                 dres.objName = next;
-                dres.score = Double.valueOf((String)tok.nextElement());
-                dres.pix = new Point2D.Double(
-                                  Double.valueOf((String)tok.nextElement()),
-                                  Double.valueOf((String)tok.nextElement()));
-                dres.width = Double.valueOf((String)tok.nextElement());
-                dres.height = Double.valueOf((String)tok.nextElement());
+                if (classifyOnly == false){
+                    dres.score = Double.valueOf((String)tok.nextElement());
+                    dres.pix = new Point2D.Double(
+                                      Double.valueOf((String)tok.nextElement()),
+                                      Double.valueOf((String)tok.nextElement()));
+                    dres.width = Double.valueOf((String)tok.nextElement());
+                    dres.height = Double.valueOf((String)tok.nextElement());
+                }else {
+                    dres.score = 1.0;
+                    dres.pix = new Point2D.Double(0.0, 0.0);
+                    dres.width = 0.0;
+                    dres.height = 0.0;
+                }
                 res.add(dres);
             }
         }
@@ -265,14 +273,14 @@ public class PyDetect
         
    
         ArrayList<DetectionResult> res = new ArrayList<DetectionResult>();
-        
+        String detectorType = NPSPyCaffeFactory.getDetectorType(detectName);
         if (exec == null){
             // First time executing so spin up the detector process
             if (new File(detectorScript).exists() == false){
                 logger.log(Level.SEVERE, "Detector script " + detectorScript + " does not exist!!!");
                 return res;
             }
-            String pythonExe = _lastProps.getProperty(detectName + ".python");
+            String pythonExe = _lastProps.getProperty(detectorType + ".python");
             if (pythonExe == null || new File(pythonExe).exists() == false){
                 pythonExe = NPSPyCaffeFactory.getPythonPath();
                 if (pythonExe == null || new File(pythonExe).exists() == false){
@@ -307,48 +315,55 @@ public class PyDetect
             String baseDir = NPSPyCaffeFactory.getBasePath();
             // get any PYTHONPATH add
             Map<String, String> env = EnvironmentUtils.getProcEnvironment();
+            
+            //See if classifyOnly
+            String classify = _lastProps.getProperty(detectName + ".classifyOnly");
+            if (classify != null && classify.toLowerCase().equals("true")){
+                classifyOnly = true;
+            }else
+                classifyOnly = false;
 
             if (NPSPyCaffeFactory.hasGPU(detectName)){
                 logger.log(Level.INFO, "Using GPU");
                 String cudaPath = NPSPyCaffeFactory.getCudaPath();
-                String pythonpath = _lastProps.getProperty(detectName + ".pythonPath");
+                String pythonpath = _lastProps.getProperty(detectorType + ".pythonPath");
                 String[] pylines = null;
                 if (pythonpath != null)
                     pylines = StringUtils.split(pythonpath, ";");
-                String mypath = _lastProps.getProperty(detectName + ".path");
+                String mypath = _lastProps.getProperty(detectorType + ".path");
                 String[] pathlines = null;
                 if (mypath != null)
                     pathlines = StringUtils.split(mypath, ";");
                 String envString = "%PATH%;" + cudaPath + "/bin";
                 for (String next : pathlines){
-                    envString = envString + ";" + baseDir + detectName + "/" + next;   
+                    envString = envString + ";" + baseDir + detectorType + "/" + next;   
                 }
-                envString = envString + ";" + "../3rdparty";
+                envString = envString + ";" + baseDir + "../3rdparty";
                 env.put("PATH", envString);
                 envString = "";
                 for (String next : pylines){
-                   envString = envString + ";" + baseDir +  detectName + "/" + next;
+                   envString = envString + ";" + baseDir +  detectorType + "/" + next;
                 }   
                 env.put("PYTHONPATH", envString);
                
             }else {
-                String pythonpath = _lastProps.getProperty(detectName + ".pythonPathNoCuda");
+                String pythonpath = _lastProps.getProperty(detectorType + ".pythonPathNoCuda");
                 String[] pylines = null;
                 if (pythonpath != null)
                     pylines = StringUtils.split(pythonpath, ";");
-                String mypath = _lastProps.getProperty(detectName + ".pathNoCuda");
+                String mypath = _lastProps.getProperty(detectorType + ".pathNoCuda");
                 String[] pathlines = null;
                 if (mypath != null)
                     pathlines = StringUtils.split(mypath, ";");
                 String envString = "%PATH%";
                 for (String next : pathlines){
-                    envString = envString + ";" + baseDir + detectName + "/" + next;
+                    envString = envString + ";" + baseDir + detectorType + "/" + next;
                 }
-                envString = envString + ";" + "../3rdparty";
+                envString = envString + ";" + baseDir + "../3rdparty";
                 env.put("PATH", envString);
                 envString = "";
                 for (String next : pylines){
-                   envString = envString + ";" + baseDir + detectName + "/" + next;
+                   envString = envString + ";" + baseDir + detectorType + "/" + next;
                 }   
                 env.put("PYTHONPATH", envString);
                 env.put("OPENBLAS_NUM_THREADS","8");

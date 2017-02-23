@@ -99,17 +99,19 @@ public class NPSPyCaffeDataContentViewer extends javax.swing.JPanel implements D
             Double height = Double.valueOf(next);
             int ix = (int)Math.round(x);
             int iy = (int)Math.round(y);
-            g.drawLine(ix, iy, 
-                       (int)Math.round(x+ width - 1.0) , iy);
-            //Hoz bottom           
-            g.drawLine(ix, (int)Math.round(y+  height - 1.0), 
-                       (int)Math.round(x+  width) , (int)Math.round(y+ height)); 
-            //Virt left
-            g.drawLine(ix, iy, 
-                       ix , (int)Math.round(y+ height)); 
-            //Virt right
-            g.drawLine((int)Math.round(x+  width), (int)Math.round(y), 
-                       (int)Math.round(x+  width) , (int)Math.round(y+ height)); 
+            if (width > 0 && height > 0){
+                g.drawLine(ix, iy, 
+                           (int)Math.round(x+ width - 1.0) , iy);
+                //Hoz bottom           
+                g.drawLine(ix, (int)Math.round(y+  height - 1.0), 
+                           (int)Math.round(x+  width) , (int)Math.round(y+ height)); 
+                //Virt left
+                g.drawLine(ix, iy, 
+                           ix , (int)Math.round(y+ height)); 
+                //Virt right
+                g.drawLine((int)Math.round(x+  width), (int)Math.round(y), 
+                           (int)Math.round(x+  width) , (int)Math.round(y+ height)); 
+            }
             //Draw Label                     
             g.drawString( objName + " : " + String.format("%.2f", score), ix + 2, iy + fheight);
         }
@@ -218,11 +220,13 @@ public class NPSPyCaffeDataContentViewer extends javax.swing.JPanel implements D
     private void setImage(BufferedImage image) {
         int pwidth = panelImage.getWidth();
         int pheight = panelImage.getHeight();
+        int bwidth = buttonPanel.getWidth();
+ 
         if (pwidth == 0){
             pwidth = this.getWidth();
-            pheight = this.getHeight();
-           
+            pheight = this.getHeight(); 
         }
+        pwidth -= bwidth + 20;
         double differenceWidth = (double)image.getWidth() / (double)pwidth;
         double differenceHeight = (double)image.getHeight() / (double)pheight;
 
@@ -385,7 +389,7 @@ public class NPSPyCaffeDataContentViewer extends javax.swing.JPanel implements D
         panelImageLayout.setHorizontalGroup(
             panelImageLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(panelImageLayout.createSequentialGroup()
-                .addComponent(imageLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 636, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(imageLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 636, Short.MAX_VALUE)
                 .addGap(18, 18, 18)
                 .addComponent(filler1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)

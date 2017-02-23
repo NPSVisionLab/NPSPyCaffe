@@ -142,20 +142,26 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             displayErrorMessage("Detector error", "No Detector was selected", "");
             return ProcessResult.ERROR;
         }
-        
-        String detectorScript = props.getProperty(detectorName + ".pyscript");
-        if (detectorScript == null){
-            logger.log(Level.SEVERE, "Could not find property " + detectorName + ".pyscript");
-            displayErrorMessage("Property Error", "Could not find property " + detectorName + ".pyscript'", "");
+        String detectorType = NPSPyCaffeFactory.getDetectorType(detectorName);
+        if (detectorType == null){
+            logger.log(Level.SEVERE, "Detector Type not included in detector name");
+            displayErrorMessage("Detector error", "No detector type not included in: ", detectorName);
             return ProcessResult.ERROR;
         }
-        detectorScript = NPSPyCaffeFactory.getBasePath() + detectorName + "/" + detectorScript;
+     
+        String detectorScript = props.getProperty(detectorType + ".pyscript");
+        if (detectorScript == null){
+            logger.log(Level.SEVERE, "Could not find property " + detectorType + ".pyscript");
+            displayErrorMessage("Property Error", "Could not find property " + detectorType + ".pyscript'", "");
+            return ProcessResult.ERROR;
+        }
+        detectorScript = NPSPyCaffeFactory.getBasePath() + detectorType + "/" + detectorScript;
         if (new File(detectorScript).exists() == false){
             logger.log(Level.SEVERE, "Detector script " + detectorScript + " does not exist!!!");
             displayErrorMessage("Property Error", "Detector script does not exist", detectorScript);
             return ProcessResult.ERROR;
         }
-        String pythonExe = props.getProperty(detectorName + ".python");
+        String pythonExe = props.getProperty(detectorType + ".python");
         if (pythonExe == null || new File(pythonExe).exists() == false){
             // No special python defined for detector so see if we found one at startup
             pythonExe = NPSPyCaffeFactory.getPythonPath();
@@ -172,7 +178,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             displayErrorMessage("Property error", "Could not find property", detectorName + ".model");
             return ProcessResult.ERROR;
         }
-        modelfile = NPSPyCaffeFactory.getBasePath() + detectorName + "/"+ modelfile;
+        modelfile = NPSPyCaffeFactory.getBasePath() + detectorType + "/"+ modelfile;
         if (new File(modelfile).exists() == false){
             logger.log(Level.SEVERE, "model file " + modelfile + " does not exist!!!");
             displayErrorMessage("Property error", "Model file does not exist", modelfile);
@@ -184,7 +190,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             displayErrorMessage("Property error", "Could not find property", detectorName + ".prototxt");
             return ProcessResult.ERROR;
         }
-        prototxt = NPSPyCaffeFactory.getBasePath() + detectorName +"/" + prototxt;
+        prototxt = NPSPyCaffeFactory.getBasePath() + detectorType +"/" + prototxt;
         if (new File(prototxt).exists() == false){
             logger.log(Level.SEVERE, "prototxt file " + prototxt + " does not exist!!!");
             displayErrorMessage("Property error", "Prototxt file does not exist", prototxt);
@@ -195,7 +201,7 @@ public class NPSPyCaffeFileIngestModule implements FileIngestModule {
             logger.log(Level.SEVERE, "Could not find property " + detectorName + ".config");
             return ProcessResult.ERROR;
         }
-        cfg = NPSPyCaffeFactory.getBasePath() + detectorName + "/" + cfg;
+        cfg = NPSPyCaffeFactory.getBasePath() + detectorType + "/" + cfg;
         if (new File(cfg).exists() == false){
             logger.log(Level.SEVERE, "config file " + cfg + " does not exist!!!");
             displayErrorMessage("Property error", "Config file does not exist", cfg);

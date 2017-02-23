@@ -1,5 +1,5 @@
 # NPSPyCaffe
-Autopsy plugin that runs image detection algorithms using Caffe and Py-faster-rcnn on windows.
+Autopsy plugin that runs image detection algorithms using Caffe and Py-faster-rcnn on windows as the default.  You can also add other detecton algorithms like Py-RFCN by adding zip files to the default installation.
 
 
 ## To install NPSPyCaffe:
@@ -17,91 +17,107 @@ If you have a GPU you can install CUDA and cuDNN
 Download CUDA toolkit 7.5 from nVidia website.
 Download cuDNN v3 or cuDNN v4 from the nVidia website.  Unpack and upzip to %CUDA_PATH%.
 
-You can download a netbeans module that contains the plugin from:
+You can download a netbeans module that contains the default plugin from:
 
     ftp://vision.nps.edu/org-nps-autopsypycaffe.nbm (600k)
 
+You can download additional detector types:
+    ftp://vison.nps.edu/autopsypycaffe-pyrfcn.zip  (pyrfcn detector type addition)
+
 Install the org-nps-autopsypycaffe.nbm plugin from the Autopsy Plugin screen.
+See below for where to unzip the detector type zips.
 
-After you install the plugin, you can edit the NPSPyCaffe\detector.properties file in the plugin install directory (usually <user name>\AppData\Roaming\autopsy\NPSPyCaffe). Change the main.python property to reflect where you installed python. To get more debug information from the program set to true the main.debug property.
+## NPSPyCaffe Plugin file structure
 
+The detector types supported by NPSPyCaffe are subdirectories in the "NPSPyCaffe/detectors" directory.  By default, the py-faster-rcnn detector type is provided.  When you want to add a new detector type, you will unzip them into this directory.  
+In each detector type directory will be a file called "detector.properties". This contains the global properties for that detector type.  For example to change the python executable that will be ran, change the py-faster-rcnn.python property in the detector.properties file in the py-faster-rcnn directory.
+A detector is made up of a detector type and various parameters like the model file it was trained to use and others.  The parameters are in a file called <detector name>.properties.  For each one of these files in the detector type directory, a choice will be added to the injest configure screen for the NPSPyCaffe plugin.  The detector name will be the name of the file with the .properties stripped off. Adding a new detector is just a matter of providing the training files and creating a <detector name>.properties file and restarting Autopsy.  On restart is will look for files that end in .properties in the detector type directories and automatically add any it finds.
+Once you install the plugin, the detector.properties file gets installed to the <Users directory>/AppData/Roaming/autopsy/NPSPyCaffe/detectors/<detector_type> directory (in the default case <detector_type> is py-faster-rcnn. We will show the default configuration file and describe each entry.
 
 ##Using NPSPyCaffe:
 
-In the release\NPSPyCaffe directory resides the configuration file for the detector properties (detector.properties). Once you install the plugin, this file gets installed to the <Users directory>/AppData/Roaming/autopsy/NPSPyCaffe directory. In this file, you define some main properties that applies to all the detectors and then specific information about each detector.  The default installation provides a single detector.  We will show the default configuration file and describe the each entry.
 
 Default detector.properties file:
 
-    # This file contains the NPSPyCaffe configuration file.  This allows users
-    # to configure the detectors that the plugin will use.
+# This file contains the NPSPyCaffe configuration file for a detector type.
+# A detector is based on a detector type which has the name of the directory
+# where it is located and a detector name which ties a detector type to a
+# configuration (model, classes, config, etc).  Each detector type directory
+# contains at least 2 or more property files. This file is named
+# detector.properties and contains information that applies to the detector
+# type.  There can be one or more of files named xxxx.properties where
+# xxxx is the name of the detector.  The properties in that file are  named:
+# <detector type>.<detector name>.<property>
 
-    # The main section applies to all detectors
-    #
+# The python to run if different from the default
+#py-faster-rcnn.python = c:/Miniconda2/python.exe
+# The python script to execute a detection
+py-faster-rcnn.pyscript =  doPyFasterRCNN.py
+# output debug log info (true or false)
+py-faster-rcnn.debug = false
 
-    # The python to run
-    main.python = c:/Miniconda2/python.exe
-    # The python script to execute a detection
-    main.pyscript = doPyFasterRCNN.py
-    # output debug log info (true or false)
-	main.debug = false
-	# The detector choices to display to the user (these are comma seperated)
-	main.detectors = demoDetect
-	
-	main.gpu = true
-	
-	# Each detector will have a section that starts with the name of the
-	# detector defined in the main.detectors.
-	
-	######## Detector demoDetect ##########################
-	# Property .classes
-	#The object types that this detector will search for (these are comma seperate
-	#These objects must be in the same order as they appear in the training.
-	#For example aeroplane will be class 1, bicycle class 2 etc.
-	#Also all classes must be on the same line!
-	#Also do not include _background_ as it will get included as class 0
-	#######################################################
-	demoDetect.classes = aeroplane, bicycle, bird, boat, bottle, bus, car,  cat, chair, cow, diningtable, dog, horse, motorbike, person, pottedplant, sheep, sofa, train, tvmonitor
-	#Text of what the detector does or is
-	demoDetect.description = VGG_CNN_M1024 net configured for faster_rcnn_end2end
-	# The py-faster-rcnn model to use
-	demoDetect.model = demo/vgg_cnn_m_1024_faster_rcnn_iter_300000.caffemodel
-    # The net to run while detecting
-    demoDetect.prototxt = demo/test.prototxt
-    # The detects config file
-    demoDetect.config = demo/faster_rcnn_alt_opt.yml
-    # The confidence threshold before reporting
-    demoDetect.confidence = 0.8
+py-faster-rcnn.gpu = true
+py-faster-rcnn.pythonPath = caffe-fast-rcnn/build/x64/Release/pycaffe;lib;caffe-fast-rcnn/python
+py-faster-rcnn.path = caffe-fast-rcnn/build/x64/Release;caffe-fast-rcnn/build/x64/Release/pycaffe/caffe
+py-faster-rcnn.pythonPathNoCuda = caffe-fast-rcnn/build/x64/Release/pycaffe_nocuda;lib;caffe-fast-rcnn/python
+py-faster-rcnn.pathNoCuda = caffe-fast-rcnn/build/x64/Release/pycaffe_nopcuda/caffe;caffe-fast-rcnn/build/x64/Release
 
 Description of the detector.properties file:
 
-    main.python = c:/Miniconda2/python.exe
-This is where you need to specify where python is installed    
+    py-faster-rcnn.python = c:/Miniconda2/python.exe
+This is where you need to specify where python is installed.  The plugin will try and find a valid python.  If it fails to find one then define it here.    
 
 
-    main.pyscript = doPyFasterRCNN.py
+    py-faster-rcnn.pyscript = doPyFasterRCNN.py
 This is the python script to run to actually do the detection.  This script will run the detection for each filename passed in stdin as well as the one passed in the startup arguments. 
 
-    main.debug = false
+    py-faster-rcnn.debug = false
 If this is set to true more logging will be written out including all the information from the detection script.
 
-    main.detectors = demoDetect
-This is the names of the detectors defined in this property file.  The program will look for <detector_name>.<property> for each detector listed in the comma seperated list.  These detectors will appear as choices in the data ingest dialog when you select the NPSPyCaffe plugin.
-
-    main.gpu = true
+    py-faster-rcnn.gpu = true
 This indicates if you want to use any CUDA hardware accelleration if its available. This can speed up the processing of picture files by 20 times against a single CPU core.
 
-	demoDetect.classes = aeroplane, bicycle, bird, boat, bottle, bus, car,  cat, chair, cow, diningtable, dog, horse, motorbike, person, pottedplant, sheep, sofa, train, tvmonitor
+Description of a demo.properties file (defines the demo detector)
+
+	py-faster-rcnn.demo.classes = aeroplane, bicycle, bird, boat, bottle, bus, car,  cat, chair, cow, diningtable, dog, horse, motorbike, person, pottedplant, sheep, sofa, train, tvmonitor
 These are the names of the object classes that the detector has been trained to detect.  They must be a comma seperated list in the same order as the detector was trained with not counting the backgrould class which is always 0.  So in this example "aeroplane" will be the class 1 in the training, bicycle class 2, and etc.
 
-	demoDetect.model = demo/vgg_cnn_m_1024_faster_rcnn_iter_300000.caffemodel
+	py-faster-rcnn.demo.model = data/demo/vgg_cnn_m_1024_faster_rcnn_iter_300000.caffemodel
 This is the model that was the product of the training of the detector.  This is the weights and bias values that drive the neural net.
 
 
-    demoDetect.prototxt = demo/test.prototxt
+    py-faster-rcnn.demo.prototxt = data/demo/test.prototxt
 This is the file that defines the detection neural net.  Since we use the Caffe as the neural net library, the network is defined by Caffe's prototext network description syntax.
 
-    demoDetect.config = demo/faster_rcnn_alt_opt.yml
+    py-faster-rcnn.demo.config = demo/faster_rcnn_alt_opt.yml
 This is the configuration file for the py-faster-rcnn library.  It defines things like if the input images traing images are in black and white or color and if the network as a rectangle processing network attached (for image detection rectangles).
 
-    demoDetect.confidence = 0.8
+    py-faster-rcnn.demo.confidence = 0.8
 This defines the minimum confidence value before the detection is considered valid. 
+
+## Thanks to the following research projects:
+
+    @inproceedings{renNIPS15fasterrcnn,
+        Author = {Shaoqing Ren and Kaiming He and Ross Girshick and Jian Sun},
+        Title = {Faster {R-CNN}: Towards Real-Time Object Detection
+             with Region Proposal Networks},
+        Booktitle = {Advances in Neural Information Processing Systems ({NIPS})},
+        Year = {2015}
+    }
+
+    @article{dai16rfcn,
+        Author = {Jifeng Dai, Yi Li, Kaiming He, Jian Sun},
+        Title = {{R-FCN}: Object Detection via Region-based Fully Convolutional Networks},
+        Journal = {arXiv preprint arXiv:1605.06409},
+        Year = {2016}
+    }
+
+    @inproceedings{liu2016ssd,
+        title = {{SSD}: Single Shot MultiBox Detector},
+        author = {Liu, Wei and Anguelov, Dragomir and Erhan, Dumitru and Szegedy, Christian and Reed, Scott and Fu, Cheng-Yang and Berg, Alexander C.},
+        booktitle = {ECCV},
+        year = {2016}
+    }
+
+
+
