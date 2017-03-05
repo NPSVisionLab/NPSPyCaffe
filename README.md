@@ -17,6 +17,9 @@ If you have a GPU you can install CUDA and cuDNN
 Download CUDA toolkit 7.5 from nVidia website.
 Download cuDNN v3 or cuDNN v4 from the nVidia website.  Unpack and upzip to %CUDA_PATH%.
 
+The py-faster-rcnn detector type will run with the GPU or the CPU.  The default mode is to run in CPU mode.  GPU mode will run about 20 times faster.  To change the mode edit the detector.properties file (see below).
+The pyrfcn detector type only currently runs in GPU mode. If you don't have a CUDA compatiable GPU it will not run!
+
 You can download a netbeans module that contains the default plugin from:
 
     ftp://vision.nps.edu/org-nps-autopsypycaffe.nbm (600k)
